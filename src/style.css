@@ -1,0 +1,97 @@
+/* Calendar viewer */
+
+.calendar-top,
+.calendar-bottom,
+.calendar-date,
+.calendar-event {
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #101010;
+}
+
+.calendar-top {
+  display: flex;
+  width: 100%;
+  color: #9d9d9d;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+  background-color: rgba(0, 0, 0, 0.9);
+  box-sizing: border-box;
+}
+
+.calendar-top .calendar-frequency,
+.calendar-top .calendar-mode {
+  color: inherit; /* Do not copy the yellow color over from entries */
+  text-align: inherit; /* Do not copy the right alignment over from entries */
+}
+
+.calendar-bottom {
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  box-sizing: border-box;
+  border-top: 1px solid #101010;
+  border-bottom: 0;
+}
+
+.calendar-body {
+  overflow-y: scroll;
+  height: calc(100% - 27px - 27px);
+}
+
+.calendar-day:first-child {
+  margin-top: 31px; /* Enable backwards scrolling without first scrolling down and then up */
+}
+
+.calendar-date {
+  font-weight: bold;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+}
+
+.calendar-event {
+  display: flex;
+}
+
+.calendar-time,
+.calendar-station {
+  flex: 0 0 48px;
+}
+
+.calendar-frequency {
+  flex: 0 0 64px;
+  color: yellow;
+  text-align: right;
+}
+
+.calendar-station abbr,
+.calendar-frequency abbr {
+  border-bottom: 0; /* The Bootstrap CSS results in <abbr> being doubly underlined */
+}
+
+.calendar-mode {
+  flex: 0 0 72px;
+  padding-left: 8px;
+  padding-right: 8px;
+  color: yellow;
+}
+
+.calendar-voice {
+  color: lime !important; /* Color-coding for analog voice modes (E, G, S, V) */
+}
+
+.calendar-morse {
+  color: magenta !important; /* Color-coding for Morse code modes (M) */
+}
+
+.calendar-digital {
+  color: red !important; /* Color-coding for digital modes (F, P, XP, HM) */
+}
+
+.calendar-search {
+  text-align: left; /* "Search" is displayed in the otherwise right-aligned frequency column */
+  font-weight: bold;
+  color: white;
+}
