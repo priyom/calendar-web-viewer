@@ -4,8 +4,10 @@
 import 'es6-promise/auto';
 import 'whatwg-fetch';
 import './style.css';
-import GoogleCalendarSource from './google-calendar-source.js';
 import CalendarViewer from './viewer.js';
+import GoogleCalendarSource from './google-calendar-source.js';
+import UtcClock from './clock.js';
 
-window.GoogleCalendarSource = GoogleCalendarSource;
 window.CalendarViewer = CalendarViewer;
+window.GoogleCalendarSource = GoogleCalendarSource;
+window.UtcClock = UtcClock;

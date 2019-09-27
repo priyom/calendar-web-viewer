@@ -7,32 +7,38 @@ The calendar viewer used to display the [priyom.org][] number station schedule.
 * Scrolling reveals more future or past events depending on the direction.
 * Stations are color-coded according to their emission type.
 * Stations are linked to the respective website pages about them.
-* Each radio frequency is printed on a distinct line.
-* Tested on Chrome, Firefox, Edge, and Internet Explorer.
+* Tested in Chrome, Firefox, Edge, and Internet Explorer.
+
+The following closely associated component is also bundled:
+
+| Name | Screenshot | Description |
+| --- | --- | --- |
+| **UTC clock** | ![UTC clock](doc/clock.png) | Displays the current UTC time according to the system clock. Exists for UX reasons, as the viewer is currently capable of displaying events only in UTC, regardless of the user's time zone. |
 
 ## Getting started
 
-The viewer is written in vanilla JavaScript, and contains no third-party
+The project is written in vanilla JavaScript, and contains no third-party
 libraries apart from a few polyfills. Run `npm install && npx webpack` to create
 a minified bundle.
 
-The viewer is designed for creating itself inside an empty container element,
-rather than embedding using an `<iframe>`. It can be used as follows:
+The components are designed for creating themselves inside empty container
+elements, rather than embedding using `<iframe>`. They can be used as follows:
 
 ```html
-<div id="container"></div>
+<div id="clock-container"></div>
+<div id="calendar-container"></div>
 <script src="viewer.js"></script> <!-- the bundle built by webpack -->
 <script>
+new UtcClock(document.getElementById('clock-container'));
 new CalendarViewer(
-  document.getElementById('container'),
+  document.getElementById('calendar-container'),
   new GoogleCalendarSource('your API key', 'your calendar ID'));
 </script>
 ```
 
 `GoogleCalendarSource` is a class that queries events hosted on a Google
-Calendar, and parses them according to the distinctive Priyom event format.
-Alternatively, the viewer may use any class that replicates [its API][] as the
-data source instead.
+Calendar, and parses them according to a specific format. Alternatively, the
+viewer may use any class that replicates [its API][] as the data source instead.
 
 ## License
 
