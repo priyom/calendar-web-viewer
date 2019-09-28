@@ -36,9 +36,9 @@ new CalendarViewer(
 </script>
 ```
 
-`GoogleCalendarSource` is a class that queries events hosted on a Google
-Calendar, and parses them according to a specific format. Alternatively, the
-viewer may use any class that replicates [its API][] as the data source instead.
+`CalendarViewer` takes a data source as a constructor parameter.
+`GoogleCalendarSource` fetches and parses events stored on a Google Calendar
+instance, using the format described in its [source code][].
 
 ## License
 
@@ -48,6 +48,6 @@ The project is bundled together with [es6-promise][] and [whatwg-fetch][], both
 available under the MIT license.
 
 [priyom.org]: http://priyom.org
-[its API]: src/google-calendar-source.js
+[source code]: src/google-calendar-source.js
 [es6-promise]: https://github.com/stefanpenner/es6-promise
 [whatwg-fetch]: https://github.com/github/fetch
