@@ -1,48 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2019 Daniel Ekmann
 
-// Less than ideal, but it works.
-const isMicrosoft = /Trident/.test(navigator.userAgent) || /Edge/.test(navigator.userAgent);
+// IE and Edge do not support scrollTo().
+function scrollElement(el, y) {
+  if (el.scrollTo) {
+    el.scrollTo(0, y);
+  } else {
+    el.scrollTop = y;
+  }
+}
 
 class Ui {
   constructor(container) {
-    this.container = container;
     this.calendarBody = null;
 
     // The top bar with the static legend.
     let calendarTop = document.createElement('div');
     calendarTop.className = 'calendar-top';
-
-    let topTime = document.createElement('div');
-    topTime.className = 'calendar-time';
-    topTime.textContent = 'Time';
-    calendarTop.appendChild(topTime);
-
-    let topStation = document.createElement('div');
-    topStation.className = 'calendar-station';
-    let topStationAbbr = document.createElement('abbr');
-    topStationAbbr.title = 'Station';
-    topStationAbbr.textContent = 'Stn.';
-    topStation.appendChild(topStationAbbr);
-    calendarTop.appendChild(topStation);
-
-    let topFrequency = document.createElement('div');
-    topFrequency.className = 'calendar-frequency';
-    let topFrequencyAbbr = document.createElement('abbr');
-    topFrequencyAbbr.title = 'Frequency';
-    topFrequencyAbbr.textContent = 'Freq.';
-    topFrequency.appendChild(topFrequencyAbbr);
-    calendarTop.appendChild(topFrequency);
-
-    let topMode = document.createElement('div');
-    topMode.className = 'calendar-mode';
-    topMode.textContent = 'Mode';
-    calendarTop.appendChild(topMode);
-
-    let topRemarks = document.createElement('div');
-    topRemarks.className = 'calendar-remarks';
-    topRemarks.textContent = 'Remarks';
-    calendarTop.appendChild(topRemarks);
+    calendarTop.innerHTML = `
+<div class="calendar-time">Time</div>
+<div class="calendar-station"><abbr title="Station">Stn.</abbr></div>
+<div class="calendar-frequency"><abbr title="Frequency">Freq.</abbr></div>
+<div class="calendar-mode">Mode</div>
+<div class="calendar-remarks">Remarks</div>
+`;
+    container.appendChild(calendarTop);
 
     // The main body containing the events.
     this.calendarBody = document.createElement('div');
@@ -56,42 +38,42 @@ class Ui {
         this.onScrollBottom();
       }
     });
+    container.appendChild(this.calendarBody);
 
     // The bottom bar with the time zone.
     let calendarBottom = document.createElement('div');
     calendarBottom.className = 'calendar-bottom';
     calendarBottom.textContent = 'Time zone: UTC';
-
-    // Construct.
-    this.container.appendChild(calendarTop);
-    this.container.appendChild(this.calendarBody);
-    this.container.appendChild(calendarBottom);
+    container.appendChild(calendarBottom);
   }
 
-  addEvents(position, date, events) {
+  addDay(direction, date, events) {
     let day = document.createElement('div');
     day.className = 'calendar-day';
-    day.appendChild(this._buildDate(date));
-    for (let i = 0; i < events.length; ++i) {
-      day.appendChild(this._buildEvent(events[i]));
-    }
-    this.calendarBody.insertBefore(day, position === 'top' ? this.calendarBody.firstChild : null);
-    if (position === 'top') {
-      // Keep the scroll at the date previously loaded.
-      if (!isMicrosoft) {
-        this.calendarBody.scrollTo(0, day.offsetHeight);
-      } else {
-        this.calendarBody.scrollTop = day.offsetHeight;
+
+    let header = document.createElement('div');
+    header.className = 'calendar-date';
+    header.textContent = this._formatDate(date);
+    day.appendChild(header);
+
+    // Treat non-arrays as single-line text notices.
+    if (Array.isArray(events)) {
+      for (let i = 0; i < events.length; ++i) {
+        day.appendChild(this._buildEvent(events[i]));
       }
+    } else {
+      let notice = document.createElement('div');
+      notice.className = 'calendar-event';
+      notice.textContent = events;
+      day.appendChild(notice);
     }
-  }
 
-  addNotice(position, date, text) {
-    let day = document.createElement('div');
-    day.className = 'calendar-day';
-    day.appendChild(this._buildDate(date));
-    day.appendChild(this._buildNotice(text));
-    this.calendarBody.insertBefore(day, position === 'top' ? this.calendarBody.firstChild : null);
+    this.calendarBody.insertBefore(day, direction === 'earlier' ? this.calendarBody.firstChild : null);
+
+    // When prepending a day, make sure that the browser doesn't suddenly scroll to the top of the container.
+    if (direction === 'earlier') {
+      scrollElement(this.calendarBody, day.offsetHeight);
+    }
   }
 
   onScrollTop() {
@@ -103,20 +85,6 @@ class Ui {
   }
 
   // ---------------------------------------------------------------------------
-
-  _buildDate(date) {
-    let section = document.createElement('div');
-    section.className = 'calendar-date';
-    section.textContent = this._formatDate(date);
-    return section;
-  }
-
-  _buildNotice(text) {
-    let section = document.createElement('div');
-    section.className = 'calendar-event';
-    section.textContent = text;
-    return section;
-  }
 
   _buildEvent(ev) {
     let time = document.createElement('div');
@@ -171,41 +139,37 @@ class Ui {
   }
 
   _classNameForStation(station) {
-    if (station[0] === 'E' || station[0] === 'G' || station[0] === 'S' || station[0] === 'V') {
-      return 'calendar-voice';
-    }
-    if (station[0] === 'M') {
-      return 'calendar-morse';
-    }
-    if (station[0] === 'F' || station[0] === 'P' || (station[0] === 'X' && station[1] === 'P') || (station[0] === 'H' && station[1] === 'M')) {
-      return 'calendar-digital';
-    }
-    return '';
+    const CLASSES = {
+      'E': 'voice',
+      'G': 'voice',
+      'S': 'voice',
+      'V': 'voice',
+      'M': 'morse',
+      'F': 'digital',
+      'P': 'digital',
+      'X': 'digital',
+      'H': 'digital'
+    };
+    return 'calendar-' + CLASSES[station[0]];
   }
 
   _websiteUrlForStation(station) {
-    let url = 'http://priyom.org/number-stations';
-
-    if (station[0] === 'E') {
-      url += '/english/';
-    } else if (station[0] === 'G') {
-      url += '/german/';
-    } else if (station[0] === 'S') {
-      url += '/slavic/';
-    } else if (station[0] === 'V') {
-      url += '/other/';
-    } else if (station[0] === 'M') {
-      url += '/morse/';
-    } else if (station[0] === 'F' || station[0] === 'P' || (station[0] === 'X' && station[1] === 'P') || (station[0] === 'H' && station[1] === 'M')) {
-      url += '/digital/';
+    const MIDDLE = {
+      'E': '/english/',
+      'G': '/german/',
+      'S': '/slavic/',
+      'V': '/other/',
+      'M': '/morse/',
+      'F': '/digital/',
+      'P': '/digital/',
+      'X': '/digital/',
+      'H': '/digital/'
     }
-
-    url += station.toLowerCase();
-
+    let url = 'http://priyom.org/number-stations' + MIDDLE[station[0]] + station.toLowerCase();
     if ((station[0] === 'F' || station[0] === 'P') && station[1] === '0' && station[2] === '3') {
+      // Accommodate for the ever growing number of F03/P03 variants.
       return url.slice(0, -1);
     }
-
     return url;
   }
 }
@@ -214,73 +178,49 @@ class CalendarViewer {
   constructor(container, source) {
     this.ui = new Ui(container);
     this.source = source;
-    this.earliestDate = null;
-    this.latestDate = null;
-    this.loadEarlier = true;
-    this.loadLater = true;
-
-    // Pull in today's date.
-    this.earliestDate = this.latestDate = new Date();
-    this.source.listEvents(this.latestDate).then(events => {
-      this.ui.addEvents('bottom', this.latestDate, events);
-
-      // HACK: Compensate for .calendar-day:first-child in the CSS.
-      if (!isMicrosoft) {
-        this.ui.calendarBody.scrollTo(0, 31);
-      } else {
-        this.ui.calendarBody.scrollTop = 31;
-      }
-    }).catch(err => {
-      this.ui.addNotice('bottom', this.latestDate, 'Cannot load events: ' + err.message);
-      this.loadEarlier = false;
-      this.loadLater = false;
-    });
-
-    // When scrolled all the way to the top, load the previous date.
-    this.ui.onScrollTop = () => {
-      if (!this.loadEarlier) {
-        return;
-      }
-
-      let prevDate = new Date(this.earliestDate);
-      prevDate.setUTCDate(prevDate.getUTCDate() - 1);
-      this.source.listEvents(prevDate).then(events => {
-        if (events.length === 0) {
-          this.ui.addNotice('top', prevDate, 'No more events available');
-          this.loadEarlier = false;
-          return;
-        }
-        this.ui.addEvents('top', prevDate, events);
-        this.earliestDate = prevDate;
-      }).catch(err => {
-        this.ui.addNotice('top', prevDate, 'Cannot load events: ' + err.message);
-        this.loadEarlier = false;
-        this.loadLater = false;
-      });
+    this.load = {
+      earlier: true,
+      later: true
+    };
+    this.dates = { // The earliest and the latest date loaded so far.
+      earlier: null,
+      later: null
     };
 
-    // When scrolled all the way to the bottom, load the next date.
-    this.ui.onScrollBottom = () => {
-      if (!this.loadLater) {
-        return;
-      }
+    this.dates.earlier = this.dates.later = new Date();
+    this._loadEvents('later', this.dates.later, () => scrollElement(this.ui.calendarBody, 31)); // HACK: Compensate for .calendar-day:first-child in the CSS.
+    this.ui.onScrollTop = () => this._loadEvents('earlier');
+    this.ui.onScrollBottom = () => this._loadEvents('later');
+  }
 
-      let nextDate = new Date(this.latestDate);
-      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
-      this.source.listEvents(nextDate).then(events => {
+  // ---------------------------------------------------------------------------
+
+  _loadEvents(direction, date, cb) {
+    if (!this.load[direction]) {
+      return;
+    }
+    let newDate = date;
+    if (!date) {
+      newDate = new Date(this.dates[direction]);
+      newDate.setUTCDate(newDate.getUTCDate() + (direction === 'earlier' ? -1 : 1));
+    }
+    this.source.listEvents(newDate)
+      .then(events => {
         if (events.length === 0) {
-          this.ui.addNotice('bottom', nextDate, 'No more events available');
-          this.loadLater = false;
+          this.ui.addDay(direction, newDate, 'No more events available');
+          this.load[direction] = false;
           return;
         }
-        this.ui.addEvents('bottom', nextDate, events);
-        this.latestDate = nextDate;
-      }).catch(err => {
-        this.ui.addNotice('bottom', nextDate, 'Cannot load events: ' + err.message);
-        this.loadEarlier = false;
-        this.loadLater = false;
+        this.ui.addDay(direction, newDate, events);
+        this.dates[direction] = newDate;
+        if (cb) {
+          cb();
+        }
+      })
+      .catch(err => {
+        this.ui.addDay(direction, newDate, 'Cannot load events: ' + err.message);
+        this.load.earlier = this.load.later = false;
       });
-    };
   }
 }
 

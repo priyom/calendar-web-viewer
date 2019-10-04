@@ -54,16 +54,16 @@ class GoogleCalendarSource {
   listEvents(date) {
     let timeMin = new Date(date);
     timeMin.setUTCHours(0, 0, 0, 0);
-
     let timeMax = new Date(timeMin);
     timeMax.setUTCDate(timeMax.getUTCDate() + 1);
-
-    return fetch(this.baseUrl + '&timeMin=' + timeMin.toISOString() + '&timeMax=' + timeMax.toISOString()).then(response => {
-      if (response.status !== 200) {
-        throw new Error('Status code ' + response.status);
-      }
-      return response.json();
-    }).then(data => data.items.map(this._parseEvent));
+    return fetch(this.baseUrl + '&timeMin=' + timeMin.toISOString() + '&timeMax=' + timeMax.toISOString())
+      .then(response => {
+        if (response.status !== 200) {
+          throw new Error('Status code ' + response.status);
+        }
+        return response.json();
+      })
+      .then(data => data.items.map(this._parseEvent));
   }
 
   // ---------------------------------------------------------------------------
