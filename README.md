@@ -13,7 +13,7 @@ The following closely associated component is also bundled:
 
 | Name | Screenshot | Description |
 | --- | --- | --- |
-| **UTC clock** | ![UTC clock](doc/clock.png) | Displays the current UTC time according to the system clock. Exists for UX reasons, as the viewer is currently capable of displaying events only in UTC, regardless of the user's time zone. |
+| **UTC clock** | ![UTC clock](doc/clock.png) | Displays the current UTC time according to the system clock.
 
 ## Getting started
 
@@ -26,19 +26,16 @@ elements, rather than embedding using `<iframe>`. They can be used as follows:
 
 ```html
 <div id="clock-container"></div>
-<div id="calendar-container"></div>
+<div id="viewer-container"></div>
 <script src="viewer.js"></script> <!-- the bundle built by webpack -->
 <script>
 new UtcClock(document.getElementById('clock-container'));
-new CalendarViewer(
-  document.getElementById('calendar-container'),
-  new GoogleCalendarSource('your API key', 'your calendar ID'));
+new CalendarViewer(document.getElementById('viewer-container'), new PriyomSource());
 </script>
 ```
 
-`CalendarViewer` takes a data source as a constructor parameter.
-`GoogleCalendarSource` fetches and parses events stored on a Google Calendar
-instance, using the format described in its [source code][].
+`CalendarViewer` takes a data source as a constructor parameter. `PriyomSource`
+relies on the in-house Priyom calendar system.
 
 ## License
 
@@ -48,6 +45,5 @@ The project is bundled together with [es6-promise][] and [whatwg-fetch][], both
 available under the MIT license.
 
 [priyom.org]: http://priyom.org
-[source code]: src/google-calendar-source.js
 [es6-promise]: https://github.com/stefanpenner/es6-promise
 [whatwg-fetch]: https://github.com/github/fetch

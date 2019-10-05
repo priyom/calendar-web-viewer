@@ -5,9 +5,9 @@ import 'es6-promise/auto';
 import 'whatwg-fetch';
 import './style.css';
 import CalendarViewer from './viewer.js';
-import GoogleCalendarSource from './google-calendar-source.js';
+import PriyomSource from './priyom-source.js';
 import UtcClock from './clock.js';
 
 window.CalendarViewer = CalendarViewer;
-window.GoogleCalendarSource = GoogleCalendarSource;
+window.PriyomSource = PriyomSource;
 window.UtcClock = UtcClock;

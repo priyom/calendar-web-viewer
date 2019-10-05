@@ -2,31 +2,7 @@
 // Copyright 2019 Daniel Ekmann
 
 //
-// A data source that relies on the legacy Google Calendar-based system.
-//
-// The only event properties used are the start timestamp and the summary.
-// The summaries are expected to be formatted as follows:
-//
-// 1. A station name made solely of alphanumeric characters.
-// 2. A single whitespace.
-// 3a. If the frequencies are not known, the literal "Search" follows.
-// 3b. Otherwise, the frequencies and the mode are formatted as follows:
-//     1) A comma-and-space-separated list of radio frequencies in kilohertz.
-//        Each entry is an integer followed by the literal "kHz".
-//        Examples: "12345kHz", "1111kHz, 2222kHz, 3333kHz"
-//     2) A single whitespace.
-//     3) A slash-separated list of compatible receiver mode(s). Each entry is
-//        made of uppercase letters only. Examples: "AM", "USB/AM", "RTTY/CW".
-// 4. Optionally, a single whitespace followed by human-readable remarks.
-//
-// Examples of conformant summary strings:
-//
-// - "G06 Search"
-// - "E07 Search [Last used: 16228kHz]"
-// - "E11 7600kHz USB"
-// - "E07 11464kHz USB (In case of traffic)"
-// - "M01b 3520kHz, 4585kHz USB/AM"
-// - "HM01 5855kHz, 9155kHz AM [Target: North America]"
+// A data source that relies on the in-house Priyom calendar system.
 //
 // Events are parsed into JavaScript objects like the following:
 //
@@ -38,11 +14,7 @@
 //   remarks: String                 // Human-readable remarks.
 // }
 //
-class GoogleCalendarSource {
-  constructor(key, calendarId) {
-    this.baseUrl = 'https://www.googleapis.com/calendar/v3/calendars/' + calendarId + '/events?orderBy=startTime&singleEvents=true&fields=items(start%2Csummary)%2Csummary&key=' + key;
-  }
-
+class PriyomSource {
   //
   // Returns a Promise that resolves to an array of event objects covering
   // a single calendar date from 00:00 UTC (inclusive) to 24:00 UTC (exclusive),
@@ -56,7 +28,7 @@ class GoogleCalendarSource {
     timeMin.setUTCHours(0, 0, 0, 0);
     let timeMax = new Date(timeMin);
     timeMax.setUTCDate(timeMax.getUTCDate() + 1);
-    return fetch(this.baseUrl + '&timeMin=' + timeMin.toISOString() + '&timeMax=' + timeMax.toISOString())
+    return fetch(`http://calendar.priyom.org/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}`)
       .then(response => {
         if (response.status !== 200) {
           throw new Error('Status code ' + response.status);
@@ -89,4 +61,4 @@ class GoogleCalendarSource {
   }
 }
 
-export default GoogleCalendarSource;
+export default PriyomSource;
