@@ -19,6 +19,12 @@
 }
 
 .calendar-top,
+.calendar-bottom,
+.calendar-date {
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.calendar-top,
 .calendar-date,
 .calendar-event {
   border-bottom: 1px solid #101010;
@@ -29,7 +35,6 @@
   display: flex;
   width: 100%;
   box-sizing: border-box;
-  background-color: rgba(0, 0, 0, 0.9);
 }
 
 .calendar-top {
