@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2019 Daniel Ekmann
 
+import topHtml from './viewer-top.html';
+
 // IE and Edge do not support scrollTo().
 function scrollElement(el, y) {
   if (el.scrollTo) {
@@ -17,13 +19,7 @@ class Ui {
     // The top bar with the static legend.
     let calendarTop = document.createElement('div');
     calendarTop.className = 'calendar-top';
-    calendarTop.innerHTML = `
-<div class="calendar-time">Time</div>
-<div class="calendar-station"><abbr title="Station">Stn.</abbr></div>
-<div class="calendar-frequency"><abbr title="Frequency">Freq.</abbr></div>
-<div class="calendar-mode">Mode</div>
-<div class="calendar-remarks">Remarks</div>
-`;
+    calendarTop.innerHTML = topHtml;
     container.appendChild(calendarTop);
 
     // The main body containing the events.
