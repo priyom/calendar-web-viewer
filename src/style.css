@@ -1,25 +1,46 @@
 /* Calendar viewer */
 
 .calendar-top,
+.calendar-body,
+.calendar-help,
+.calendar-bottom {
+  line-height: 1.42857143;
+}
+
+.calendar-top,
 .calendar-bottom,
 .calendar-date,
-.calendar-event {
+.calendar-event,
+.calendar-help {
   padding-left: 15px;
   padding-right: 15px;
   padding-top: 5px;
   padding-bottom: 5px;
+}
+
+.calendar-top,
+.calendar-date,
+.calendar-event {
   border-bottom: 1px solid #101010;
 }
 
-.calendar-top {
+.calendar-top,
+.calendar-bottom {
   display: flex;
   width: 100%;
+  box-sizing: border-box;
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.calendar-top {
   color: #9d9d9d;
   font-weight: bold;
   text-transform: uppercase;
   text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
-  background-color: rgba(0, 0, 0, 0.9);
-  box-sizing: border-box;
+}
+
+.calendar-top abbr {
+  border-bottom: 0; /* The Bootstrap CSS results in <abbr> being doubly underlined */
 }
 
 .calendar-top .calendar-frequency,
@@ -29,16 +50,35 @@
 }
 
 .calendar-bottom {
-  width: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
-  box-sizing: border-box;
   border-top: 1px solid #101010;
-  border-bottom: 0;
+}
+
+.calendar-bottom .calendar-time-zone {
+  flex: auto;
+}
+
+.calendar-bottom .calendar-help-link {
+  display: block;
+}
+
+.calendar-help {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 31px; /* Do not cover up the bottom bar containing the "Close" button */
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.95);
+}
+
+.calendar-help p {
+  margin: 0 0 10px;
 }
 
 .calendar-body {
+  height: calc(100% - 31px - 31px); /* Container height minus top bar height minus bottom bar height */
   overflow-y: scroll;
-  height: calc(100% - 27px - 27px);
 }
 
 .calendar-day:first-child {
@@ -46,13 +86,16 @@
 }
 
 .calendar-date {
-  font-weight: bold;
-  background-color: rgba(0, 0, 0, 0.9);
   color: white;
+  font-weight: bold;
 }
 
 .calendar-event {
   display: flex;
+}
+
+.calendar-event:last-child {
+  border-bottom: 0; /* Avoid clashing with .calendar-bottom's border-top */
 }
 
 .calendar-time,
@@ -64,11 +107,6 @@
   flex: 0 0 64px;
   color: yellow;
   text-align: right;
-}
-
-.calendar-station abbr,
-.calendar-frequency abbr {
-  border-bottom: 0; /* The Bootstrap CSS results in <abbr> being doubly underlined */
 }
 
 .calendar-mode {

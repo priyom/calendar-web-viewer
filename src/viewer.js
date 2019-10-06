@@ -2,6 +2,7 @@
 // Copyright 2019 Daniel Ekmann
 
 import topHtml from './viewer-top.html';
+import helpHtml from './viewer-help.html';
 
 // IE and Edge do not support scrollTo().
 function scrollElement(el, y) {
@@ -15,6 +16,11 @@ function scrollElement(el, y) {
 class Ui {
   constructor(container) {
     this.calendarBody = null;
+
+    // Make the container positioned if it's not yet so. This is used for the help overlay.
+    if (!container.style.position || container.style.position === 'static') {
+      container.style.position = 'relative';
+    }
 
     // The top bar with the static legend.
     let calendarTop = document.createElement('div');
@@ -36,10 +42,37 @@ class Ui {
     });
     container.appendChild(this.calendarBody);
 
-    // The bottom bar with the time zone.
+    // The help overlay (hidden by default).
+    let calendarHelp = document.createElement('div');
+    calendarHelp.className = 'calendar-help';
+    calendarHelp.innerHTML = helpHtml;
+    container.appendChild(calendarHelp);
+
+    // The bottom bar with the time zone and the help facility.
     let calendarBottom = document.createElement('div');
     calendarBottom.className = 'calendar-bottom';
-    calendarBottom.textContent = 'Time zone: UTC';
+
+    let timeZone = document.createElement('div');
+    timeZone.className = 'calendar-time-zone';
+    timeZone.textContent = 'Time zone: UTC';
+    calendarBottom.appendChild(timeZone);
+
+    let helpLink = document.createElement('a');
+    helpLink.className = 'calendar-help-link';
+    helpLink.href = '#';
+    helpLink.textContent = 'Help';
+    helpLink.addEventListener('click', e => {
+      e.preventDefault();
+      if (!calendarHelp.style.display || calendarHelp.style.display === 'none') {
+        calendarHelp.style.display = 'block';
+        e.target.textContent = 'Close';
+      } else {
+        calendarHelp.style.display = 'none';
+        e.target.textContent = 'Help';
+      }
+    });
+    calendarBottom.appendChild(helpLink);
+
     container.appendChild(calendarBottom);
   }
 
