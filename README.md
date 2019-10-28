@@ -29,13 +29,10 @@ elements, rather than embedding using `<iframe>`. They can be used as follows:
 <div id="viewer-container"></div>
 <script src="viewer.js"></script> <!-- the bundle built by webpack -->
 <script>
-new UtcClock(document.getElementById('clock-container'));
-new CalendarViewer(document.getElementById('viewer-container'), new PriyomSource());
+createClock(document.getElementById('clock-container'));
+createViewer(document.getElementById('viewer-container'));
 </script>
 ```
-
-`CalendarViewer` takes a data source as a constructor parameter. `PriyomSource`
-relies on the in-house Priyom calendar system.
 
 ## License
 

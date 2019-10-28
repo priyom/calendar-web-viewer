@@ -1,28 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2019 Daniel Ekmann
 
-class UtcClock {
-  constructor(container) {
-    let title = document.createElement('h3');
-    title.textContent = 'UTC time';
-    container.appendChild(title);
+function createClock(parent) {
+  let title = document.createElement('h3');
+  title.textContent = 'UTC time';
+  parent.appendChild(title);
 
-    let content = document.createElement('div');
-    container.appendChild(content);
+  let content = document.createElement('div');
+  parent.appendChild(content);
 
-    // setInterval():
-    // - cannot take a method as it binds "this" improperly.
-    // - does not execute until after the first interval completes.
-    let doTime = () => {
-      let date = new Date();
-      let hours = date.getUTCHours();
-      let minutes = date.getUTCMinutes();
-      let seconds = date.getUTCSeconds();
-      content.textContent = (hours < 10 ? '0' + hours : hours) + ':' + (minutes < 10 ? '0' + minutes : minutes) + ':' + (seconds < 10 ? '0' + seconds : seconds);
-    };
-    doTime();
-    setInterval(doTime, 1000);
-  }
+  let clock = () => {
+    let date = new Date();
+    let h = date.getUTCHours();
+    let m = date.getUTCMinutes();
+    let s = date.getUTCSeconds();
+    content.textContent = (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  };
+  clock(); // Set the clock immediately, not in 1000 ms.
+  setInterval(clock, 1000);
 }
 
-export default UtcClock;
+export default createClock;

@@ -3,11 +3,10 @@
 
 import 'es6-promise/auto';
 import 'whatwg-fetch';
-import './style.css';
-import CalendarViewer from './viewer.js';
-import PriyomSource from './priyom-source.js';
-import UtcClock from './clock.js';
 
-window.CalendarViewer = CalendarViewer;
-window.PriyomSource = PriyomSource;
-window.UtcClock = UtcClock;
+import './style.css';
+import createClock from './clock.js';
+import createViewer from './viewer.js';
+
+window.createClock = createClock;
+window.createViewer = createViewer;

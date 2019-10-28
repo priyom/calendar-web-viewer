@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2019 Daniel Ekmann
 
+import PriyomSource from './priyom-source.js';
 import topHtml from './viewer-top.html';
 import helpHtml from './viewer-help.html';
 
@@ -13,115 +14,131 @@ function scrollElement(el, y) {
   }
 }
 
-class Ui {
-  constructor(container) {
-    this.calendarBody = null;
+class Viewer {
+  constructor(parent) {
+    this.body = null;
+    this.hooks = {};
 
-    // Make the container positioned if it's not yet so. This is used for the help overlay.
-    if (!container.style.position || container.style.position === 'static') {
-      container.style.position = 'relative';
-    }
+    // Used to position the help overlay.
+    parent.style.position = 'relative';
 
     // The top bar with the static legend.
-    let calendarTop = document.createElement('div');
-    calendarTop.className = 'calendar-top';
-    calendarTop.innerHTML = topHtml;
-    container.appendChild(calendarTop);
+    let legend = document.createElement('div');
+    legend.className = 'calendar-top';
+    legend.innerHTML = topHtml;
+    parent.appendChild(legend);
 
     // The main body containing the events.
-    this.calendarBody = document.createElement('div');
-    this.calendarBody.className = 'calendar-body';
-    this.calendarBody.addEventListener('scroll', e => {
-      // The scroll properties are rounded down due to fractional values on high DPI displays.
-      // It's not perfect, though - it sometimes loads more than one day at once.
-      if (Math.floor(e.target.scrollTop) === 0) {
-        this.onScrollTop();
-      } else if (Math.floor(e.target.scrollTop) === Math.floor(e.target.scrollHeight - e.target.offsetHeight)) {
-        this.onScrollBottom();
-      }
-    });
-    container.appendChild(this.calendarBody);
+    this.body = document.createElement('div');
+    this.body.className = 'calendar-body';
+    parent.appendChild(this.body);
 
-    // The help overlay (hidden by default).
-    let calendarHelp = document.createElement('div');
-    calendarHelp.className = 'calendar-help';
-    calendarHelp.innerHTML = helpHtml;
-    container.appendChild(calendarHelp);
+    // The overlay with the static help text. (hidden by default)
+    let help = document.createElement('div');
+    help.className = 'calendar-help';
+    help.innerHTML = helpHtml;
+    parent.appendChild(help);
 
     // The bottom bar with the time zone and the help facility.
-    let calendarBottom = document.createElement('div');
-    calendarBottom.className = 'calendar-bottom';
+    let bottom = document.createElement('div');
+    bottom.className = 'calendar-bottom';
+    parent.appendChild(bottom);
 
     let timeZone = document.createElement('div');
     timeZone.className = 'calendar-time-zone';
     timeZone.textContent = 'Time zone: UTC';
-    calendarBottom.appendChild(timeZone);
+    bottom.appendChild(timeZone);
 
     let helpLink = document.createElement('a');
     helpLink.className = 'calendar-help-link';
     helpLink.href = '#';
     helpLink.textContent = 'Help';
+    bottom.appendChild(helpLink);
+
+    // Detect when the body is scrolled all the way to the top or the bottom, and call the relevant hooks.
+    this.body.addEventListener('scroll', e => {
+      // The scroll properties are rounded down due to fractional values on high DPI displays.
+      // However, this sometimes loads more than one day at once on such displays. Any ideas?
+      if (Math.floor(e.target.scrollTop) === 0) {
+        this.hooks.scrollTop();
+      } else if (Math.floor(e.target.scrollTop) === Math.floor(e.target.scrollHeight - e.target.offsetHeight)) {
+        this.hooks.scrollBottom();
+      }
+    });
+
+    // Display the help text when requested.
     helpLink.addEventListener('click', e => {
       e.preventDefault();
-      if (!calendarHelp.style.display || calendarHelp.style.display === 'none') {
-        calendarHelp.style.display = 'block';
+      if (!help.style.display || help.style.display === 'none') {
+        help.style.display = 'block';
         e.target.textContent = 'Close';
       } else {
-        calendarHelp.style.display = 'none';
+        help.style.display = 'none';
         e.target.textContent = 'Help';
       }
     });
-    calendarBottom.appendChild(helpLink);
-
-    container.appendChild(calendarBottom);
   }
 
-  addDay(direction, date, events) {
+  prepend(events) {
+    let day = this._buildDay(events);
+    this.body.insertBefore(day, this.body.firstChild);
+    scrollElement(this.body, day.offsetHeight); // Keep the scrollbar where the top of the body previously was.
+  }
+
+  append(events) {
+    this.body.appendChild(this._buildDay(events));
+    if (this.body.childNodes.length === 1) {
+      scrollElement(this.body, 31); // A hacky way to enable backwards scrolling without first scrolling forward.
+    }
+  }
+
+  on(name, cb) {
+    this.hooks[name] = cb; // EventEmitter-style event hooks.
+  }
+
+  // ---------------------------------------------------------------------------
+
+  _buildDay(events) {
+    // Special cases where a single-line text notice is apt.
+    if (!Array.isArray(events) || events.length === 0) {
+      let notice = document.createElement('div');
+      notice.className = 'calendar-event';
+      if (events.length === 0) {
+        notice.textContent = 'No more events available';
+      } else if (events instanceof Error) {
+        notice.textContent = 'Cannot load events: ' + events.message;
+      }
+      return notice;
+    }
+
     let day = document.createElement('div');
     day.className = 'calendar-day';
 
     let header = document.createElement('div');
     header.className = 'calendar-date';
-    header.textContent = this._formatDate(date);
+    header.textContent = this._formatDate(events[0].start); // A generous assumption that there is only one date in the set.
     day.appendChild(header);
 
-    // Treat non-arrays as single-line text notices.
-    if (Array.isArray(events)) {
-      for (let i = 0; i < events.length; ++i) {
-        day.appendChild(this._buildEvent(events[i]));
-      }
-    } else {
-      let notice = document.createElement('div');
-      notice.className = 'calendar-event';
-      notice.textContent = events;
-      day.appendChild(notice);
+    for (let i = 0; i < events.length; ++i) {
+      day.appendChild(this._buildEvent(events[i]));
     }
 
-    this.calendarBody.insertBefore(day, direction === 'earlier' ? this.calendarBody.firstChild : null);
-
-    // When prepending a day, make sure that the browser doesn't suddenly scroll to the top of the container.
-    if (direction === 'earlier') {
-      scrollElement(this.calendarBody, day.offsetHeight);
-    }
+    return day;
   }
-
-  onScrollTop() {
-    // Does nothing by default. Use for hooks to load more past events.
-  }
-
-  onScrollBottom() {
-    // Does nothing by default. Use for hooks to load more future events.
-  }
-
-  // ---------------------------------------------------------------------------
 
   _buildEvent(ev) {
+    let event = document.createElement('div');
+    event.className = 'calendar-event';
+
     let time = document.createElement('div');
     time.className = 'calendar-time';
     time.textContent = this._formatTime(ev.start);
+    event.appendChild(time);
 
     let station = document.createElement('div');
     station.className = 'calendar-station';
+    event.appendChild(station);
+
     let stationLink = document.createElement('a');
     stationLink.className = this._classNameForStation(ev.station);
     stationLink.href = this._websiteUrlForStation(ev.station);
@@ -136,23 +153,19 @@ class Ui {
     } else {
       frequency.innerHTML = ev.frequencies.map(f => f + 'kHz').join('<br>');
     }
+    event.appendChild(frequency);
 
     let mode = document.createElement('div');
     mode.className = 'calendar-mode';
     mode.textContent = ev.mode;
+    event.appendChild(mode);
 
     let remarks = document.createElement('div');
     remarks.className = 'calendar-remarks';
     remarks.textContent = ev.remarks;
+    event.appendChild(remarks);
 
-    let section = document.createElement('div');
-    section.className = 'calendar-event';
-    section.appendChild(time);
-    section.appendChild(station);
-    section.appendChild(frequency);
-    section.appendChild(mode);
-    section.appendChild(remarks);
-    return section;
+    return event;
   }
 
   _formatDate(date) {
@@ -162,9 +175,9 @@ class Ui {
   }
 
   _formatTime(date) {
-    let hours = date.getUTCHours();
-    let minutes = date.getUTCMinutes();
-    return (hours < 10 ? '0' + hours : hours) + ':' + (minutes < 10 ? '0' + minutes : minutes);
+    let h = date.getUTCHours();
+    let m = date.getUTCMinutes();
+    return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
   }
 
   _classNameForStation(station) {
@@ -193,7 +206,7 @@ class Ui {
       'P': '/digital/',
       'X': '/digital/',
       'H': '/digital/'
-    }
+    };
     let url = 'http://priyom.org/number-stations' + MIDDLE[station[0]] + station.toLowerCase();
     if ((station[0] === 'F' || station[0] === 'P') && station[1] === '0' && station[2] === '3') {
       // Accommodate for the ever growing number of F03/P03 variants.
@@ -203,54 +216,43 @@ class Ui {
   }
 }
 
-class CalendarViewer {
-  constructor(container, source) {
-    this.ui = new Ui(container);
-    this.source = source;
-    this.load = {
-      earlier: true,
-      later: true
-    };
-    this.dates = { // The earliest and the latest date loaded so far.
-      earlier: null,
-      later: null
-    };
+function createViewer(parent) {
+  let viewer = new Viewer(parent);
+  let source = new PriyomSource();
 
-    this.dates.earlier = this.dates.later = new Date();
-    this._loadEvents('later', this.dates.later, () => scrollElement(this.ui.calendarBody, 31)); // HACK: Compensate for .calendar-day:first-child in the CSS.
-    this.ui.onScrollTop = () => this._loadEvents('earlier');
-    this.ui.onScrollBottom = () => this._loadEvents('later');
-  }
+  let load = {
+    earlier: true,
+    later: true
+  };
+  let dates = {
+    earlier: null,
+    later: null
+  };
 
-  // ---------------------------------------------------------------------------
-
-  _loadEvents(direction, date, cb) {
-    if (!this.load[direction]) {
-      return;
+  let loadEvents = dir => {
+    if (dir instanceof Date) {
+      dates.earlier = dates.later = dir;
+      dir = 'later';
+    } else {
+      if (!load[dir]) {
+        return;
+      }
+      dates[dir].setUTCDate(dates[dir].getUTCDate() + (dir === 'earlier' ? -1 : 1));
     }
-    let newDate = date;
-    if (!date) {
-      newDate = new Date(this.dates[direction]);
-      newDate.setUTCDate(newDate.getUTCDate() + (direction === 'earlier' ? -1 : 1));
-    }
-    this.source.listEvents(newDate)
+    source.listEvents(dates[dir])
       .then(events => {
-        if (events.length === 0) {
-          this.ui.addDay(direction, newDate, 'No more events available');
-          this.load[direction] = false;
-          return;
-        }
-        this.ui.addDay(direction, newDate, events);
-        this.dates[direction] = newDate;
-        if (cb) {
-          cb();
-        }
+        viewer[dir === 'earlier' ? 'prepend' : 'append'](events);
+        load[dir] = events.length > 0;
       })
       .catch(err => {
-        this.ui.addDay(direction, newDate, 'Cannot load events: ' + err.message);
-        this.load.earlier = this.load.later = false;
+        viewer[dir === 'earlier' ? 'prepend' : 'append'](err);
+        load.earlier = load.later = false;
       });
-  }
+  };
+
+  loadEvents(new Date());
+  viewer.on('scrollTop', () => loadEvents('earlier'));
+  viewer.on('scrollBottom', () => loadEvents('later'));
 }
 
-export default CalendarViewer;
+export default createViewer;
