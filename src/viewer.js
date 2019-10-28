@@ -209,8 +209,7 @@ class Viewer {
     };
     let url = 'http://priyom.org/number-stations' + MIDDLE[station[0]] + station.toLowerCase();
     if ((station[0] === 'F' || station[0] === 'P') && station[1] === '0' && station[2] === '3') {
-      // Accommodate for the ever growing number of F03/P03 variants.
-      return url.slice(0, -1);
+      return url.slice(0, -1); // Accommodate for the ever growing number of F03/P03 variants.
     }
     return url;
   }
@@ -237,6 +236,7 @@ function createViewer(parent) {
       if (!load[dir]) {
         return;
       }
+      dates[dir] = new Date(dates[dir]); // Must create a new instance, or the other dates[dir] would be modified too!
       dates[dir].setUTCDate(dates[dir].getUTCDate() + (dir === 'earlier' ? -1 : 1));
     }
     source.listEvents(dates[dir])
