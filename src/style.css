@@ -1,60 +1,29 @@
-/* Calendar viewer */
-
-.calendar-top,
-.calendar-body,
-.calendar-help,
-.calendar-bottom {
-  line-height: 1.42857143;
-}
-
-.calendar-top,
-.calendar-bottom,
-.calendar-date,
-.calendar-event,
-.calendar-help {
-  padding-left: 15px;
-  padding-right: 15px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
-.calendar-top,
-.calendar-bottom,
-.calendar-date {
-  background-color: rgba(0, 0, 0, 0.9);
-}
-
-.calendar-top,
-.calendar-date,
-.calendar-event {
-  border-bottom: 1px solid #101010;
-}
-
-.calendar-top,
-.calendar-bottom {
+.calendar-container {
   display: flex;
-  width: 100%;
-  box-sizing: border-box;
+  flex-direction: column;
+  position: relative; /* Needed to enable absolute positioning for .help */
 }
 
 .calendar-top {
+  display: flex;
+  padding: 4px 16px 4px 16px;
+  background-color: rgba(0, 0, 0, 0.9);
+  border-bottom: 1px solid #101010;
   color: #9d9d9d;
   font-weight: bold;
   text-transform: uppercase;
   text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
 }
 
-.calendar-top abbr {
-  border-bottom: 0; /* The Bootstrap CSS results in <abbr> being doubly underlined */
-}
-
 .calendar-top .calendar-frequency,
 .calendar-top .calendar-mode {
   color: inherit; /* Do not copy the yellow color over from entries */
-  text-align: inherit; /* Do not copy the right alignment over from entries */
 }
 
 .calendar-bottom {
+  display: flex;
+  padding: 4px 16px 4px 16px;
+  background-color: rgba(0, 0, 0, 0.9);
   border-top: 1px solid #101010;
 }
 
@@ -70,37 +39,34 @@
   display: none;
   position: absolute;
   top: 0;
-  bottom: 31px; /* Do not cover up the bottom bar containing the "Close" button */
+  bottom: 29px; /* Do not cover up the bottom bar containing the "Close" button */
   left: 0;
   right: 0;
-  overflow-y: auto;
+  padding: 4px 16px 4px 16px;
   background-color: rgba(0, 0, 0, 0.95);
-}
-
-.calendar-help p {
-  margin: 0 0 10px;
+  overflow-y: auto;
 }
 
 .calendar-body {
-  height: calc(100% - 31px - 31px); /* Container height minus top bar height minus bottom bar height */
-  overflow-y: scroll;
+  flex: auto;
+  overflow-y: auto;
 }
 
 .calendar-day:first-child {
-  margin-top: 31px; /* Enable backwards scrolling without first scrolling down and then up */
+  margin-top: 32px; /* Enable backwards scrolling without first scrolling down and then up */
 }
 
 .calendar-date {
-  color: white;
+  padding: 4px 16px 4px 16px;
+  background-color: rgba(0, 0, 0, 0.9);
+  border-bottom: 1px solid #101010;
   font-weight: bold;
 }
 
 .calendar-event {
   display: flex;
-}
-
-.calendar-event:last-child {
-  border-bottom: 0; /* Avoid clashing with .calendar-bottom's border-top */
+  padding: 4px 16px 4px 16px;
+  border-bottom: 1px solid #101010;
 }
 
 .calendar-time,
@@ -109,16 +75,17 @@
 }
 
 .calendar-frequency {
-  flex: 0 0 64px;
+  flex: 0 0 72px;
   color: yellow;
-  text-align: right;
 }
 
 .calendar-mode {
-  flex: 0 0 72px;
-  padding-left: 8px;
-  padding-right: 8px;
+  flex: 0 0 64px;
   color: yellow;
+}
+
+.calendar-remarks {
+  flex: auto;
 }
 
 .calendar-voice {
@@ -134,7 +101,6 @@
 }
 
 .calendar-search {
-  text-align: left; /* "Search" is displayed in the otherwise right-aligned frequency column */
   font-weight: bold;
-  color: white;
+  color: inherit;
 }

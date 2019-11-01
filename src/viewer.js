@@ -19,8 +19,7 @@ class Viewer {
     this.body = null;
     this.hooks = {};
 
-    // Used to position the help overlay.
-    parent.style.position = 'relative';
+    parent.className = 'calendar-container';
 
     // The top bar with the static legend.
     let legend = document.createElement('div');
@@ -88,7 +87,7 @@ class Viewer {
   append(events) {
     this.body.appendChild(this._buildDay(events));
     if (this.body.childNodes.length === 1) {
-      scrollElement(this.body, 31); // A hacky way to enable backwards scrolling without first scrolling forward.
+      scrollElement(this.body, 32); // A hacky way to enable backwards scrolling without first scrolling forward.
     }
   }
 
