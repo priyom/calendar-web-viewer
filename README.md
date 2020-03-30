@@ -2,45 +2,27 @@
 
 ![A screenshot of the viewer in action](doc/screenshot.png)
 
-The calendar viewer used to display the [priyom.org][] number station schedule.
+The Priyom calendar frontend, comprising:
 
-* Scrolling reveals more future or past events depending on the direction.
-* Stations are color-coded according to their emission type.
-* Stations are linked to the respective website pages about them.
-* Tested in Chrome, Firefox, Edge, and Internet Explorer.
-
-The following closely associated component is also bundled:
-
-| Name | Screenshot | Description |
-| --- | --- | --- |
-| **UTC clock** | ![UTC clock](doc/clock.png) | Displays the current UTC time according to the system clock.
+* A real-time UTC clock
+* An event viewer
+  * Supports infinite scrolling.
+  * Colors the station names according to their emission types.
+  * Links to the website pages about the stations.
 
 ## Getting started
 
-The project is written in vanilla JavaScript, and contains no third-party
-libraries apart from a few polyfills. Run `npm install && npx webpack` to create
-a minified bundle.
-
-The components are designed for creating themselves inside empty container
-elements, rather than embedding using `<iframe>`. They can be used as follows:
+Install [Node.js][]. Run `npm install && npx webpack` from the root directory to
+compile the project. Embed the application on an HTML page as follows:
 
 ```html
 <div id="clock-container"></div>
 <div id="viewer-container"></div>
-<script src="viewer.js"></script> <!-- the bundle built by webpack -->
-<script>
-createClock(document.getElementById('clock-container'));
-createViewer(document.getElementById('viewer-container'));
-</script>
+<script src="main.js"></script>
 ```
 
 ## License
 
-The project itself is licensed under the GNU GPL version 3 or later.
+The project is licensed under the GNU GPL version 3 or later.
 
-The project is bundled together with [es6-promise][] and [whatwg-fetch][], both
-available under the MIT license.
-
-[priyom.org]: http://priyom.org
-[es6-promise]: https://github.com/stefanpenner/es6-promise
-[whatwg-fetch]: https://github.com/github/fetch
+[Node.js]: https://nodejs.org/en/

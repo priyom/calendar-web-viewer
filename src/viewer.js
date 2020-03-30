@@ -1,257 +1,164 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2019 Daniel Ekmann
+// Copyright 2019, 2020 Daniel Ekmann
 
-import PriyomSource from './priyom-source.js';
-import topHtml from './viewer-top.html';
-import helpHtml from './viewer-help.html';
+import fetchPriyom from './fetch-priyom.js';
+import viewerHelpHtml from './viewer-help.html';
 
-// IE and Edge do not support scrollTo().
-function scrollElement(el, y) {
-  if (el.scrollTo) {
-    el.scrollTo(0, y);
-  } else {
-    el.scrollTop = y;
+// A helper function for creating a bunch of DOM elements.
+function createElement(tagName, className, textContent, useInnerHTML) {
+  let el = document.createElement(tagName);
+  el.className = className;
+  el[useInnerHTML ? 'innerHTML' : 'textContent'] = textContent || ''; // Prevent IE 11 and Edge <=18 from putting in "undefined" everywhere.
+  return el;
+}
+
+// Formats the UTC date portion of the given Date object as it's meant to be displayed inside the viewer.
+function formatDate(date) {
+  const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  return DAYS_OF_WEEK[date.getUTCDay()] + ', ' + date.getUTCDate() + ' ' + MONTHS[date.getUTCMonth()];
+}
+
+// Formats the UTC time portion of the given Date object as it's meant to be displayed inside the viewer.
+function formatTime(date) {
+  let h = date.getUTCHours();
+  let m = date.getUTCMinutes();
+  return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
+}
+
+// Returns the name of the CSS class that would color the name of the given station according to its emission type.
+function classNameForStation(station) {
+  if (['E', 'G', 'S', 'V'].indexOf(station[0]) !== -1) {
+    return 'calendar-voice';
+  } else if (station[0] === 'M') {
+    return 'calendar-morse';
   }
+  return 'calendar-digital';
+}
+
+// Returns the URL of the Priyom website page about the given station.
+function websiteUrlForStation(station) {
+  if ((station[0] === 'F' || station[0] === 'P') && station[1] === '0' && station[2] === '3') {
+    return 'http://priyom.org/number-stations/operators/polish-11/digital-modes';
+  }
+  const MIDDLE = {
+    'E': '/english/',
+    'G': '/german/',
+    'S': '/slavic/',
+    'V': '/other/',
+    'M': '/morse/'
+  };
+  return 'http://priyom.org/number-stations' + (MIDDLE[station[0]] || '/digital/') + station.toLowerCase();
+}
+
+// Builds a DOM element representing a single event object. See fetch-priyom.js for details on event objects.
+function buildEvent(event) {
+  let el = createElement('div', 'calendar-event');
+  el.appendChild(createElement('div', 'calendar-time', formatTime(event.start)));
+
+  let station = el.appendChild(createElement('div', 'calendar-station'));
+  let stationLink = station.appendChild(createElement('a', classNameForStation(event.station), event.station));
+  stationLink.href = websiteUrlForStation(event.station);
+
+  if (event.frequencies === undefined) {
+    el.appendChild(createElement('div', 'calendar-frequency calendar-search', 'Search'));
+  } else {
+    el.appendChild(createElement('div', 'calendar-frequency', event.frequencies.map(f => f + 'kHz').join('<br>'), true));
+  }
+
+  el.appendChild(createElement('div', 'calendar-mode', event.mode));
+  el.appendChild(createElement('div', 'calendar-remarks', event.remarks));
+  return el;
+}
+
+// Builds a DOM element representing an array of event objects and their dates.
+function buildEvents(events) {
+  // Handle fetchPriyom() errors.
+  if (events instanceof Error) {
+    return createElement('div', 'calendar-event', 'Cannot load events: ' + events.message);
+  } else if (events.length === 0) {
+    return createElement('div', 'calendar-event', 'No more events available');
+  }
+
+  let el = createElement('div', 'calendar-day');
+  for (let i = 0; i < events.length; ++i) {
+    // Add the date at the beginning and between the events with different dates.
+    if (i === 0 || events[i - 1].start.toISOString().substring(0, 10) !== events[i].start.toISOString().substring(0, 10)) {
+      el.appendChild(createElement('div', 'calendar-date', formatDate(events[i].start)));
+    }
+    el.appendChild(buildEvent(events[i]));
+  }
+
+  return el;
 }
 
 class Viewer {
   constructor(parent) {
     this.body = null;
-    this.hooks = {};
-
-    parent.className = 'calendar-container';
+    this.earliestDate = this.latestDate = new Date();
+    this.scrollEarlier = this.scrollLater = true;
 
     // The top bar with the static legend.
-    let legend = document.createElement('div');
-    legend.className = 'calendar-top';
-    legend.innerHTML = topHtml;
-    parent.appendChild(legend);
+    let legend = parent.appendChild(createElement('div', 'calendar-top'));
+    [
+      createElement('div', 'calendar-time', 'Time'),
+      createElement('div', 'calendar-station', '<abbr title="Station">Stn.</abbr>', true),
+      createElement('div', 'calendar-frequency', '<abbr title="Frequency">Freq.</abbr>', true),
+      createElement('div', 'calendar-mode', 'Mode'),
+      createElement('div', 'calendar-remarks', 'Remarks')
+    ].forEach(el => legend.appendChild(el));
 
     // The main body containing the events.
-    this.body = document.createElement('div');
-    this.body.className = 'calendar-body';
-    parent.appendChild(this.body);
-
-    // The overlay with the static help text. (hidden by default)
-    let help = document.createElement('div');
-    help.className = 'calendar-help';
-    help.innerHTML = helpHtml;
-    parent.appendChild(help);
-
-    // The bottom bar with the time zone and the help facility.
-    let bottom = document.createElement('div');
-    bottom.className = 'calendar-bottom';
-    parent.appendChild(bottom);
-
-    let timeZone = document.createElement('div');
-    timeZone.className = 'calendar-time-zone';
-    timeZone.textContent = 'Time zone: UTC';
-    bottom.appendChild(timeZone);
-
-    let helpLink = document.createElement('a');
-    helpLink.className = 'calendar-help-link';
-    helpLink.href = '#';
-    helpLink.textContent = 'Help';
-    bottom.appendChild(helpLink);
-
-    // Detect when the body is scrolled all the way to the top or the bottom, and call the relevant hooks.
-    this.body.addEventListener('scroll', e => {
-      // The scroll properties are rounded down due to fractional values on high DPI displays.
-      // However, this sometimes loads more than one day at once on such displays. Any ideas?
-      if (Math.floor(e.target.scrollTop) === 0) {
-        this.hooks.scrollTop();
-      } else if (Math.floor(e.target.scrollTop) === Math.floor(e.target.scrollHeight - e.target.offsetHeight)) {
-        this.hooks.scrollBottom();
+    this.body = parent.appendChild(createElement('div', 'calendar-body'));
+    this.body.addEventListener('scroll', () => {
+      if (this.scrollEarlier && this.body.scrollTop < 1) {
+        this.scrollEarlier = false; // Prevent duplicate requests, particularly on high DPI displays.
+        fetchPriyom(this.earliestDate.getTime() - 86400000, events => {
+          this.prepend(events);
+          this.scrollEarlier = events.length > 0;
+        });
+      } else if (this.scrollLater && this.body.scrollHeight - this.body.scrollTop - this.body.offsetHeight < 1) {
+        this.scrollLater = false;
+        fetchPriyom(this.latestDate.getTime() + 86400000, events => {
+          this.append(events);
+          this.scrollLater = events.length > 0;
+        });
       }
     });
 
-    // Display the help text when requested.
+    // The overlay with the static help text. (hidden by default)
+    let help = parent.appendChild(createElement('div', 'calendar-help', viewerHelpHtml, true));
+
+    // The bottom bar with the time zone and the help facility.
+    let bottom = parent.appendChild(createElement('div', 'calendar-bottom'));
+    bottom.appendChild(createElement('div', 'calendar-time-zone', 'Time zone: UTC'));
+    let helpLink = bottom.appendChild(createElement('a', 'calendar-help-link', 'Help'));
+    helpLink.href = '#';
     helpLink.addEventListener('click', e => {
       e.preventDefault();
-      if (!help.style.display || help.style.display === 'none') {
-        help.style.display = 'block';
-        e.target.textContent = 'Close';
-      } else {
-        help.style.display = 'none';
-        e.target.textContent = 'Help';
-      }
+      help.style.display = help.style.display === 'block' ? 'none' : 'block';
+      helpLink.textContent = helpLink.textContent === 'Close' ? 'Help' : 'Close';
     });
   }
 
   prepend(events) {
-    let day = this._buildDay(events);
+    let day = buildEvents(events);
     this.body.insertBefore(day, this.body.firstChild);
-    scrollElement(this.body, day.offsetHeight); // Keep the scrollbar where the top of the body previously was.
+    this.body.scrollTop = day.offsetHeight; // Keep the scrollbar where the top of the body previously was.
+    if (Array.isArray(events)) {
+      this.earliestDate = events[0].start;
+    }
   }
 
   append(events) {
-    this.body.appendChild(this._buildDay(events));
+    this.body.appendChild(buildEvents(events));
     if (this.body.childNodes.length === 1) {
-      scrollElement(this.body, 32); // A hacky way to enable backwards scrolling without first scrolling forward.
+      this.body.scrollTop = 32; // A hacky way to enable backwards scrolling without first scrolling forward.
     }
-  }
-
-  on(name, cb) {
-    this.hooks[name] = cb; // EventEmitter-style event hooks.
-  }
-
-  // ---------------------------------------------------------------------------
-
-  _buildDay(events) {
-    // Special cases where a single-line text notice is apt.
-    if (!Array.isArray(events) || events.length === 0) {
-      let notice = document.createElement('div');
-      notice.className = 'calendar-event';
-      if (events.length === 0) {
-        notice.textContent = 'No more events available';
-      } else if (events instanceof Error) {
-        notice.textContent = 'Cannot load events: ' + events.message;
-      }
-      return notice;
+    if (Array.isArray(events)) {
+      this.latestDate = events[events.length - 1].start;
     }
-
-    let day = document.createElement('div');
-    day.className = 'calendar-day';
-
-    let header = document.createElement('div');
-    header.className = 'calendar-date';
-    header.textContent = this._formatDate(events[0].start); // A generous assumption that there is only one date in the set.
-    day.appendChild(header);
-
-    for (let i = 0; i < events.length; ++i) {
-      day.appendChild(this._buildEvent(events[i]));
-    }
-
-    return day;
-  }
-
-  _buildEvent(ev) {
-    let event = document.createElement('div');
-    event.className = 'calendar-event';
-
-    let time = document.createElement('div');
-    time.className = 'calendar-time';
-    time.textContent = this._formatTime(ev.start);
-    event.appendChild(time);
-
-    let station = document.createElement('div');
-    station.className = 'calendar-station';
-    event.appendChild(station);
-
-    let stationLink = document.createElement('a');
-    stationLink.className = this._classNameForStation(ev.station);
-    stationLink.href = this._websiteUrlForStation(ev.station);
-    stationLink.textContent = ev.station;
-    station.appendChild(stationLink);
-
-    let frequency = document.createElement('div');
-    frequency.className = 'calendar-frequency';
-    if (ev.frequencies === undefined) {
-      frequency.className += ' calendar-search';
-      frequency.textContent = 'Search';
-    } else {
-      frequency.innerHTML = ev.frequencies.map(f => f + 'kHz').join('<br>');
-    }
-    event.appendChild(frequency);
-
-    let mode = document.createElement('div');
-    mode.className = 'calendar-mode';
-    mode.textContent = ev.mode;
-    event.appendChild(mode);
-
-    let remarks = document.createElement('div');
-    remarks.className = 'calendar-remarks';
-    remarks.textContent = ev.remarks;
-    event.appendChild(remarks);
-
-    return event;
-  }
-
-  _formatDate(date) {
-    const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    return DAYS_OF_WEEK[date.getUTCDay()] + ', ' + date.getUTCDate() + ' ' + MONTHS[date.getUTCMonth()];
-  }
-
-  _formatTime(date) {
-    let h = date.getUTCHours();
-    let m = date.getUTCMinutes();
-    return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
-  }
-
-  _classNameForStation(station) {
-    const CLASSES = {
-      'E': 'voice',
-      'G': 'voice',
-      'S': 'voice',
-      'V': 'voice',
-      'M': 'morse',
-      'F': 'digital',
-      'P': 'digital',
-      'X': 'digital',
-      'H': 'digital'
-    };
-    return 'calendar-' + CLASSES[station[0]];
-  }
-
-  _websiteUrlForStation(station) {
-    const MIDDLE = {
-      'E': '/english/',
-      'G': '/german/',
-      'S': '/slavic/',
-      'V': '/other/',
-      'M': '/morse/',
-      'F': '/digital/',
-      'P': '/digital/',
-      'X': '/digital/',
-      'H': '/digital/'
-    };
-    let url = 'http://priyom.org/number-stations' + MIDDLE[station[0]] + station.toLowerCase();
-    if ((station[0] === 'F' || station[0] === 'P') && station[1] === '0' && station[2] === '3') {
-      return url.slice(0, -1); // Accommodate for the ever growing number of F03/P03 variants.
-    }
-    return url;
   }
 }
 
-function createViewer(parent) {
-  let viewer = new Viewer(parent);
-  let source = new PriyomSource();
-
-  let load = {
-    earlier: true,
-    later: true
-  };
-  let dates = {
-    earlier: null,
-    later: null
-  };
-
-  let loadEvents = dir => {
-    if (dir instanceof Date) {
-      dates.earlier = dates.later = dir;
-      dir = 'later';
-    } else {
-      if (!load[dir]) {
-        return;
-      }
-      dates[dir] = new Date(dates[dir]); // Must create a new instance, or the other dates[dir] would be modified too!
-      dates[dir].setUTCDate(dates[dir].getUTCDate() + (dir === 'earlier' ? -1 : 1));
-    }
-    source.listEvents(dates[dir])
-      .then(events => {
-        viewer[dir === 'earlier' ? 'prepend' : 'append'](events);
-        load[dir] = events.length > 0;
-      })
-      .catch(err => {
-        viewer[dir === 'earlier' ? 'prepend' : 'append'](err);
-        load.earlier = load.later = false;
-      });
-  };
-
-  loadEvents(new Date());
-  viewer.on('scrollTop', () => loadEvents('earlier'));
-  viewer.on('scrollBottom', () => loadEvents('later'));
-}
-
-export default createViewer;
+export default Viewer;

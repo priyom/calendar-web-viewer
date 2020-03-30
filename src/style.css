@@ -1,4 +1,8 @@
-.calendar-container {
+#clock-container {
+  text-align: center;
+}
+
+#viewer-container {
   display: flex;
   flex-direction: column;
   position: relative; /* Needed to enable absolute positioning for .help */
