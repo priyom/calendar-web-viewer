@@ -145,7 +145,7 @@ class Viewer {
     let day = buildEvents(events);
     this.body.insertBefore(day, this.body.firstChild);
     this.body.scrollTop = day.offsetHeight; // Keep the scrollbar where the top of the body previously was.
-    if (Array.isArray(events)) {
+    if (events.length > 0) {
       this.earliestDate = events[0].start;
     }
   }
@@ -155,7 +155,7 @@ class Viewer {
     if (this.body.childNodes.length === 1) {
       this.body.scrollTop = 32; // A hacky way to enable backwards scrolling without first scrolling forward.
     }
-    if (Array.isArray(events)) {
+    if (events.length > 0) {
       this.latestDate = events[events.length - 1].start;
     }
   }
