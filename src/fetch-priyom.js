@@ -47,7 +47,7 @@ function fetchPriyom(date, cb) {
   xhr.onerror = () => {
     cb(new Error('Network request failed'));
   };
-  xhr.open('GET', `http://calendar.priyom.org/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}`);
+  xhr.open('GET', `https://calendar.priyom.org/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}`);
   xhr.send(null);
 }
 
